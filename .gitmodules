@@ -1,0 +1,3 @@
+[submodule "Source/Camera-Face-Detection/external-libs/ESP-WHO"]
+	path = Source/Camera-Face-Detection/external-libs/ESP-WHO
+	url = https://github.com/espressif/esp-who.git
