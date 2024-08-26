@@ -77,7 +77,7 @@ static void task(AppButton *self)
                     if (self->pressed == BUTTON_MENU)
                     {
                         self->menu++;
-                        self->menu %= (MENU_MOTION_DETECTION + 1);
+                        self->menu %= (MENU_MAX);
                     }
 
                     last_time = backup_time;

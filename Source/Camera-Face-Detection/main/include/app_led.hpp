@@ -14,7 +14,7 @@ private:
     AppButton *key;
 
 public:
-    AppLED(const gpio_num_t pin, AppButton *key);
+    AppLED(gpio_num_t pin, AppButton *key);
 
-    void update();
+    void update() final;
 };

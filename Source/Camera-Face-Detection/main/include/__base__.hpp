@@ -11,17 +11,11 @@
 
 typedef enum
 {
-    COMMAND_TIMEOUT = -2,
-    COMMAND_NOT_DETECTED = -1,
-
     MENU_STOP_WORKING = 0,
     MENU_DISPLAY_ONLY = 1,
     MENU_FACE_RECOGNITION = 2,
-    MENU_MOTION_DETECTION = 3,
 
-    ACTION_ENROLL = 4,
-    ACTION_DELETE = 5,
-    ACTION_RECOGNIZE = 6
+    MENU_MAX
 } command_word_t;
 
 class Observer
