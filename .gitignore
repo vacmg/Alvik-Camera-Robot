@@ -1,3 +1,5 @@
 build/
 .idea/
+managed_components
+dependencies.lock
 
