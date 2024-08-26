@@ -9,7 +9,6 @@
 #include "__base__.hpp"
 #include "app_camera.hpp"
 #include "app_button.hpp"
-#include "app_speech.hpp"
 
 #define BOARD_LCD_MOSI 47
 #define BOARD_LCD_MISO -1
@@ -31,21 +30,18 @@ class AppLCD : public Observer, public Frame
 {
 private:
     AppButton *key;
-    AppSpeech *speech;
-
 public:
     esp_lcd_panel_handle_t panel_handle;
     bool switch_on;
     bool paper_drawn;
 
-    AppLCD(AppButton *key,
-           AppSpeech *speech,
+    explicit AppLCD(AppButton *key,
            QueueHandle_t xQueueFrameI = nullptr,
            QueueHandle_t xQueueFrameO = nullptr,
            void (*callback)(camera_fb_t *) = esp_camera_fb_return);
 
     void draw_wallpaper();
-    void draw_color(int color);
+    void draw_color(int color) const;
 
     void update();
 

@@ -10,17 +10,14 @@
 static const char TAG[] = "App/LCD";
 
 AppLCD::AppLCD(AppButton *key,
-               AppSpeech *speech,
                QueueHandle_t queue_i,
                QueueHandle_t queue_o,
                void (*callback)(camera_fb_t *)) : Frame(queue_i, queue_o, callback),
                                                   key(key),
-                                                  speech(speech),
                                                   panel_handle(NULL),
                                                   switch_on(false)
 {
-    do
-    {
+
         ESP_LOGI(TAG, "Initialize SPI bus");
         spi_bus_config_t bus_conf = {
             .mosi_io_num = BOARD_LCD_MOSI,
@@ -64,13 +61,12 @@ AppLCD::AppLCD(AppButton *key,
         vTaskDelay(pdMS_TO_TICKS(500));
         this->draw_wallpaper();
         vTaskDelay(pdMS_TO_TICKS(1000));
-    } while (0);
 }
 
 void AppLCD::draw_wallpaper()
 {
     uint16_t *pixels = (uint16_t *)heap_caps_malloc((logo_en_240x240_lcd_width * logo_en_240x240_lcd_height) * sizeof(uint16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    if (NULL == pixels)
+    if (nullptr == pixels)
     {
         ESP_LOGE(TAG, "Memory for bitmap is not enough");
         return;
@@ -82,7 +78,7 @@ void AppLCD::draw_wallpaper()
     this->paper_drawn = true;
 }
 
-void AppLCD::draw_color(int color)
+void AppLCD::draw_color(int color) const
 {
     uint16_t *buffer = (uint16_t *)malloc(BOARD_LCD_H_RES * sizeof(uint16_t));
     if (NULL == buffer)
@@ -111,21 +107,12 @@ void AppLCD::update()
     {
         if (this->key->pressed == BUTTON_MENU)
         {
-            this->switch_on = (this->key->menu == MENU_STOP_WORKING) ? false : true;
+            this->switch_on = this->key->menu != MENU_STOP_WORKING;
             ESP_LOGD(TAG, "%s", this->switch_on ? "ON" : "OFF");
         }
     }
 
-    if (this->speech->command > COMMAND_NOT_DETECTED)
-    {
-        if (this->speech->command >= MENU_STOP_WORKING && this->speech->command <= MENU_MOTION_DETECTION)
-        {
-            this->switch_on = (this->speech->command == MENU_STOP_WORKING) ? false : true;
-            ESP_LOGD(TAG, "%s", this->switch_on ? "ON" : "OFF");
-        }
-    }
-
-    if (this->switch_on == false)
+    if (!this->switch_on)
     {
         this->paper_drawn = false;
     }
@@ -145,7 +132,7 @@ static void task(AppLCD *self)
         {
             if (self->switch_on)
                 esp_lcd_panel_draw_bitmap(self->panel_handle, 0, 0, frame->width, frame->height, (uint16_t *)frame->buf);
-            else if (self->paper_drawn == false)
+            else if (!self->paper_drawn)
                 self->draw_wallpaper();
 
             if (self->queue_o)
@@ -156,10 +143,10 @@ static void task(AppLCD *self)
     }
     ESP_LOGD(TAG, "Stop");
     self->draw_wallpaper();
-    vTaskDelete(NULL);
+    vTaskDelete(nullptr);
 }
 
 void AppLCD::run()
 {
-    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 2 * 1024, this, 5, NULL, 1);
+    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 2 * 1024, this, 5, nullptr, 1);
 }

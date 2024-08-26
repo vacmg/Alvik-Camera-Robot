@@ -19,7 +19,7 @@ typedef enum
     LED_BLINK_4S = 10,
 } led_mode_t;
 
-AppLED::AppLED(const gpio_num_t pin, AppButton *key, AppSpeech *sr) : pin(pin), key(key), sr(sr)
+AppLED::AppLED(const gpio_num_t pin, AppButton *key) : pin(pin), key(key)
 {
     // initialize GPIO
     gpio_config_t gpio_conf;
@@ -41,14 +41,6 @@ void AppLED::update()
     if (this->key->pressed)
     {
         mode = LED_BLINK_1S;
-    }
-    // parse speech recognition
-    else if (this->sr->detected)
-    {
-        if (this->sr->command > COMMAND_NOT_DETECTED)
-            mode = LED_BLINK_1S;
-        else
-            mode = LED_ALWAYS_ON;
     }
 
     // do

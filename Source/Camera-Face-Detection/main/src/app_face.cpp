@@ -53,32 +53,15 @@ static int rgb_printf(camera_fb_t *fb, uint32_t color, const char *format, ...)
 }
 
 AppFace::AppFace(AppButton *key,
-                 AppSpeech *speech,
                  QueueHandle_t queue_i,
                  QueueHandle_t queue_o,
                  void (*callback)(camera_fb_t *)) : Frame(queue_i, queue_o, callback),
                                                     key(key),
-                                                    speech(speech),
                                                     detector(0.3F, 0.3F, 10, 0.3F),
                                                     detector2(0.4F, 0.3F, 10),
-                                                    state(FACE_IDLE),
                                                     switch_on(false)
 {
-#if CONFIG_MFN_V1
-#if CONFIG_S8
-    this->recognizer = new FaceRecognition112V1S8();
-#elif CONFIG_S16
-    this->recognizer = new FaceRecognition112V1S16();
-#endif
-#endif
 
-    this->recognizer->set_partition(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "fr");
-    this->recognizer->set_ids_from_flash();
-}
-
-AppFace::~AppFace()
-{
-    delete this->recognizer;
 }
 
 void AppFace::update()
@@ -88,47 +71,10 @@ void AppFace::update()
     {
         if (this->key->pressed == BUTTON_MENU)
         {
-            this->state = FACE_IDLE;
-            this->switch_on = (this->key->menu == MENU_FACE_RECOGNITION) ? true : false;
+            this->switch_on = (this->key->menu == MENU_FACE_RECOGNITION);
             ESP_LOGD(TAG, "%s", this->switch_on ? "ON" : "OFF");
         }
-        else if (this->key->pressed == BUTTON_PLAY)
-        {
-            this->state = FACE_RECOGNIZE;
-        }
-        else if (this->key->pressed == BUTTON_UP)
-        {
-            this->state = FACE_ENROLL;
-        }
-        else if (this->key->pressed == BUTTON_DOWN)
-        {
-            this->state = FACE_DELETE;
-        }
     }
-
-    // Parse speech recognition
-    if (this->speech->command > COMMAND_NOT_DETECTED)
-    {
-        if (this->speech->command >= MENU_STOP_WORKING && this->speech->command <= MENU_MOTION_DETECTION)
-        {
-            this->state = FACE_IDLE;
-            this->switch_on = (this->speech->command == MENU_FACE_RECOGNITION) ? true : false;
-            ESP_LOGD(TAG, "%s", this->switch_on ? "ON" : "OFF");
-        }
-        else if (this->speech->command == ACTION_ENROLL)
-        {
-            this->state = FACE_ENROLL;
-        }
-        else if (this->speech->command == ACTION_RECOGNIZE)
-        {
-            this->state = FACE_RECOGNIZE;
-        }
-        else if (this->speech->command == ACTION_DELETE)
-        {
-            this->state = FACE_DELETE;
-        }
-    }
-    ESP_LOGD(TAG, "Human face recognition state = %d", this->state);
 }
 
 static void task(AppFace *self)
@@ -148,70 +94,10 @@ static void task(AppFace *self)
                 std::list<dl::detect::result_t> &detect_candidates = self->detector.infer((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3});
                 std::list<dl::detect::result_t> &detect_results = self->detector2.infer((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3}, detect_candidates);
 
-                if (detect_results.size())
+                if (!detect_results.empty())
                 {
-                    // print_detection_result(detect_results);
+                    print_detection_result(detect_results);
                     draw_detection_result((uint16_t *)frame->buf, frame->height, frame->width, detect_results);
-                }
-
-                if (self->state)
-                {
-                    if (detect_results.size() == 1)
-                    {
-                        if (self->state == FACE_ENROLL)
-                        {
-                            self->recognizer->enroll_id((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3}, detect_results.front().keypoint, "", true);
-                            ESP_LOGI(TAG, "Enroll ID %d", self->recognizer->get_enrolled_ids().back().id);
-                        }
-                        else if (self->state == FACE_RECOGNIZE)
-                        {
-                            self->recognize_result = self->recognizer->recognize((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3}, detect_results.front().keypoint);
-                            // print_detection_result(detect_results);
-                            ESP_LOGD(TAG, "Similarity: %f", self->recognize_result.similarity);
-                            if (self->recognize_result.id > 0)
-                                ESP_LOGI(TAG, "Match ID: %d", self->recognize_result.id);
-                            else
-                                ESP_LOGI(TAG, "Match ID: %d", self->recognize_result.id);
-                        }
-                    }
-
-                    if (self->state == FACE_DELETE)
-                    {
-                        vTaskDelay(10);
-                        self->recognizer->delete_id(true);
-                        ESP_LOGI(TAG, "%d IDs left", self->recognizer->get_enrolled_id_num());
-                    }
-
-                    self->state_previous = self->state;
-                    self->state = FACE_IDLE;
-                    self->frame_count = FRAME_DELAY_NUM;
-                }
-
-                // Write result on several frames of image
-                if (self->frame_count)
-                {
-                    switch (self->state_previous)
-                    {
-                    case FACE_DELETE:
-                        rgb_printf(frame, RGB565_MASK_RED, "%d IDs left", self->recognizer->get_enrolled_id_num());
-                        break;
-
-                    case FACE_RECOGNIZE:
-                        if (self->recognize_result.id > 0)
-                            rgb_printf(frame, RGB565_MASK_GREEN, "ID %d", self->recognize_result.id);
-                        else
-                            rgb_print(frame, RGB565_MASK_RED, "who ?");
-                        break;
-
-                    case FACE_ENROLL:
-                        rgb_printf(frame, RGB565_MASK_BLUE, "Enroll: ID %d", self->recognizer->get_enrolled_ids().back().id);
-                        break;
-
-                    default:
-                        break;
-                    }
-
-                    self->frame_count--;
                 }
             }
 
@@ -222,10 +108,10 @@ static void task(AppFace *self)
         }
     }
     ESP_LOGD(TAG, "Stop");
-    vTaskDelete(NULL);
+    vTaskDelete(nullptr);
 }
 
 void AppFace::run()
 {
-    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 5 * 1024, this, 5, NULL, 1);
+    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 5 * 1024, this, 5, nullptr, 1);
 }
