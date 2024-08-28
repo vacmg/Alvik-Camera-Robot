@@ -18,6 +18,11 @@ typedef enum
     MENU_MAX
 } command_word_t;
 
+typedef struct
+{
+    int8_t horizontalRotationAmount;
+} movement_orders_t;
+
 class Observer
 {
 public:

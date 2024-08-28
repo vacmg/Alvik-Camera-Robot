@@ -27,12 +27,15 @@ public:
     HumanFaceDetectMNP01 detector2;
 
     face_info_t recognize_result;
+    SemaphoreHandle_t detection_data_mutex;
 
+    std::list<dl::detect::result_t>* volatile detect_results_ptr;
     bool switch_on;
 
     AppFace(AppButton *key,
             QueueHandle_t queue_i = nullptr,
             QueueHandle_t queue_o = nullptr,
+            SemaphoreHandle_t mutex = nullptr,
             void (*callback)(camera_fb_t *) = esp_camera_fb_return);
 
     void update();

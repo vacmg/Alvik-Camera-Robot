@@ -196,9 +196,9 @@
 class AppCamera : public Frame
 {
 public:
-    AppCamera(const pixformat_t pixel_fromat,
-              const framesize_t frame_size,
-              const uint8_t fb_count,
+    AppCamera(pixformat_t pixel_fromat,
+              framesize_t frame_size,
+              uint8_t fb_count,
               QueueHandle_t queue_o = nullptr);
 
     void run();

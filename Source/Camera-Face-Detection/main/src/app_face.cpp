@@ -55,10 +55,13 @@ static int rgb_printf(camera_fb_t *fb, uint32_t color, const char *format, ...)
 AppFace::AppFace(AppButton *key,
                  QueueHandle_t queue_i,
                  QueueHandle_t queue_o,
+                 SemaphoreHandle_t mutex,
                  void (*callback)(camera_fb_t *)) : Frame(queue_i, queue_o, callback),
                                                     key(key),
                                                     detector(0.3F, 0.3F, 10, 0.3F),
                                                     detector2(0.4F, 0.3F, 10),
+                                                    detection_data_mutex(mutex),
+                                                    detect_results_ptr(nullptr),
                                                     switch_on(false)
 {
 
@@ -91,12 +94,21 @@ static void task(AppFace *self)
         {
             if (self->switch_on)
             {
+                if(self->detection_data_mutex)
+                {
+                    xSemaphoreTake(self->detection_data_mutex, portMAX_DELAY);
+                }
                 std::list<dl::detect::result_t> &detect_candidates = self->detector.infer((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3});
                 std::list<dl::detect::result_t> &detect_results = self->detector2.infer((uint16_t *)frame->buf, {(int)frame->height, (int)frame->width, 3}, detect_candidates);
+                self->detect_results_ptr = &detect_results;
+                if(self->detection_data_mutex)
+                {
+                    xSemaphoreGive(self->detection_data_mutex);
+                }
 
                 if (!detect_results.empty())
                 {
-                    print_detection_result(detect_results);
+                    //print_detection_result(detect_results);
                     draw_detection_result((uint16_t *)frame->buf, frame->height, frame->width, detect_results);
                 }
             }
