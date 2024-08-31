@@ -34,6 +34,7 @@ public:
     esp_lcd_panel_handle_t panel_handle;
     bool switch_on;
     bool paper_drawn;
+    bool black_drawn;
 
     explicit AppLCD(AppButton *key,
            QueueHandle_t xQueueFrameI = nullptr,

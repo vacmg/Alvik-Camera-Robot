@@ -17,6 +17,7 @@
 #include "app_camera.hpp"
 #include "app_button.hpp"
 
+
 class AppFace : public Observer, public Frame
 {
 private:
@@ -27,15 +28,14 @@ public:
     HumanFaceDetectMNP01 detector2;
 
     face_info_t recognize_result;
-    SemaphoreHandle_t detection_data_mutex;
 
-    std::list<dl::detect::result_t>* volatile detect_results_ptr;
+    QueueHandle_t queue_o_movement_orders;
     bool switch_on;
 
     AppFace(AppButton *key,
             QueueHandle_t queue_i = nullptr,
             QueueHandle_t queue_o = nullptr,
-            SemaphoreHandle_t mutex = nullptr,
+            QueueHandle_t queue_o_movement_orders = nullptr,
             void (*callback)(camera_fb_t *) = esp_camera_fb_return);
 
     void update();

@@ -4,6 +4,7 @@
 
 #include "esp_log.h"
 #include "esp_camera.h"
+#include "dl_image.hpp"
 
 #include "logo_en_240x240_lcd.h"
 
@@ -15,7 +16,9 @@ AppLCD::AppLCD(AppButton *key,
                void (*callback)(camera_fb_t *)) : Frame(queue_i, queue_o, callback),
                                                   key(key),
                                                   panel_handle(NULL),
-                                                  switch_on(false)
+                                                  switch_on(false),
+                                                  paper_drawn(false),
+                                                  black_drawn(false)
 {
 
         ESP_LOGI(TAG, "Initialize SPI bus");
@@ -108,6 +111,7 @@ void AppLCD::update()
         if (this->key->pressed == BUTTON_MENU)
         {
             this->switch_on = this->key->menu != MENU_STOP_WORKING;
+            this->black_drawn = false;
             ESP_LOGD(TAG, "%s", this->switch_on ? "ON" : "OFF");
         }
     }
@@ -121,6 +125,14 @@ void AppLCD::update()
 static void task(AppLCD *self)
 {
     ESP_LOGD(TAG, "Start");
+    uint32_t constexpr frame_pixels_buff_size = (BOARD_LCD_H_RES * BOARD_LCD_V_RES) * sizeof(uint16_t);
+    ESP_LOGI(TAG, "allocating %lu bytes for frame_pixels_buff", frame_pixels_buff_size);
+    uint16_t *frame_pixels_buff = (uint16_t *)heap_caps_malloc(frame_pixels_buff_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    if(nullptr == frame_pixels_buff)
+    {
+        ESP_LOGE(TAG, "Memory for bitmap is not enough");
+        vTaskDelete(nullptr);
+    }
 
     camera_fb_t *frame = nullptr;
     while (true)
@@ -131,7 +143,37 @@ static void task(AppLCD *self)
         if (xQueueReceive(self->queue_i, &frame, portMAX_DELAY))
         {
             if (self->switch_on)
-                esp_lcd_panel_draw_bitmap(self->panel_handle, 0, 0, frame->width, frame->height, (uint16_t *)frame->buf);
+            {
+                if(!self->black_drawn)
+                {
+                    self->draw_color(0x000000);
+                    self->black_drawn = true;
+                }
+
+                if(frame->height == BOARD_LCD_V_RES && frame->width == BOARD_LCD_H_RES)
+                {
+                    esp_lcd_panel_draw_bitmap(self->panel_handle, 0, 0, frame->width, frame->height, (uint16_t *)frame->buf);
+                }
+                else
+                {
+                    double aspectRatio = static_cast<double>(frame->width) / frame->height;
+                    int destHRes = BOARD_LCD_H_RES;
+                    int destVRes = BOARD_LCD_V_RES;
+                    if(aspectRatio > 1) // width > height
+                    {
+                        destVRes = static_cast<int>(static_cast<double>(BOARD_LCD_V_RES) / aspectRatio);
+                    }
+                    else if(aspectRatio < 1) // height > width
+                    {
+                        destHRes = static_cast<int>(static_cast<double>(BOARD_LCD_H_RES) * aspectRatio);
+                    }
+
+                    ESP_LOGD(TAG, "Resizing image from %dx%d to %dx%d (aspect ratio: %f)", frame->width, frame->height, destHRes, destVRes, aspectRatio);
+                    dl::image::resize_image_nearest((uint16_t*)frame->buf, {static_cast<int>(frame->height), static_cast<int>(frame->width), 1}, frame_pixels_buff, {destVRes, destHRes, 1});
+                    esp_lcd_panel_draw_bitmap(self->panel_handle, 0, 0, destHRes, destVRes, frame_pixels_buff);
+                }
+            }
+
             else if (!self->paper_drawn)
                 self->draw_wallpaper();
 
@@ -143,10 +185,11 @@ static void task(AppLCD *self)
     }
     ESP_LOGD(TAG, "Stop");
     self->draw_wallpaper();
+    heap_caps_free(frame_pixels_buff);
     vTaskDelete(nullptr);
 }
 
 void AppLCD::run()
 {
-    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 2 * 1024, this, 5, nullptr, 1);
+    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 4 * 1024, this, 5, nullptr, 1);
 }

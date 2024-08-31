@@ -34,7 +34,7 @@ static adc_oneshot_unit_handle_t adc1_handle = NULL;
 static const char *TAG = "App/Button";
 
 AppButton::AppButton() : key_configs({{BUTTON_MENU, 2800, 3000}, {BUTTON_PLAY, 2250, 2450}, {BUTTON_UP, 300, 500}, {BUTTON_DOWN, 850, 1050}}),
-                         pressed(BUTTON_IDLE), menu(0)
+                         pressed(BUTTON_IDLE), menu(MENU_STOP_WORKING)
 {
     if (adc1_handle){
         ESP_LOGE(TAG, "Button adc has been initialized");
