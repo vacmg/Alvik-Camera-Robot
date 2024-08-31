@@ -79,6 +79,11 @@ void AppFace::update()
     }
 }
 
+static double fmap(double value, double in_min, double in_max, double out_min, double out_max)
+{
+    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 static void task(AppFace *self)
 {
     ESP_LOGD(TAG, "Start");
@@ -127,14 +132,37 @@ static void task(AppFace *self)
                         }
                     }
 
-                    uint32_t hSize = right_offset - left_offset;
-                    uint32_t vSize = bottom_offset - top_offset;
-                    uint32_t area = hSize * vSize;
+                    double right_proportion = static_cast<double>(right_offset) / frame->width;
+                    double left_proportion = static_cast<double>(left_offset) / frame->width;
+                    double top_proportion = static_cast<double>(top_offset) / frame->height;
+                    double bottom_proportion = static_cast<double>(bottom_offset) / frame->height;
 
-                    ESP_LOGI(TAG, "area: %lu, hSize: %lu, vSize: %lu, left_offset: %lu, right_offset: %lu, top_offset: %lu, bottom_offset: %lu",
-                             area, hSize, vSize, left_offset, right_offset, top_offset, bottom_offset);
+                    uint32_t area = (right_offset - left_offset) * (bottom_offset - top_offset);
+                    double area_proportion = static_cast<double>(area) / (frame->width * frame->height);
 
-                    // TODO send the movement orders
+                    ESP_LOGI(TAG, "area: %lu, area_proportion: %f,\nleft_proportion: %f, right_proportion: %f, top_proportion: %f, bottom_proportion: %f,\nleft_offset: %lu, right_offset: %lu, top_offset: %lu, bottom_offset: %lu",
+                             area, area_proportion, left_proportion, right_proportion, top_proportion, bottom_proportion, left_offset, right_offset, top_offset, bottom_offset);
+
+                    #define TARGET_HORIZONTAL_EXCLUSION_PROPORTION 0.20
+                    #define MAX_ROTATION_MOVEMENT 10
+                    #define MIN_ROTATION_MOVEMENT 0.5
+
+                    static movement_orders_t movementOrders = {};
+
+                    if(left_proportion < TARGET_HORIZONTAL_EXCLUSION_PROPORTION)
+                    {
+                        movementOrders.horizontalRotationAmount = fmap(left_proportion, 0, TARGET_HORIZONTAL_EXCLUSION_PROPORTION, -MAX_ROTATION_MOVEMENT, -MIN_ROTATION_MOVEMENT);
+                    }
+                    else if(right_proportion > 1 - TARGET_HORIZONTAL_EXCLUSION_PROPORTION)
+                    {
+                        movementOrders.horizontalRotationAmount = fmap(right_proportion, 1 - TARGET_HORIZONTAL_EXCLUSION_PROPORTION, 1, MIN_ROTATION_MOVEMENT, MAX_ROTATION_MOVEMENT);
+                    }
+                    else
+                    {
+                        movementOrders.horizontalRotationAmount = 0;
+                    }
+
+                    xQueueSend(self->queue_o_movement_orders, &movementOrders, portMAX_DELAY); // TODO send the real movement orders
                 }
 
                 if (!detect_results.empty())

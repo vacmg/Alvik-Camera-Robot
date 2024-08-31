@@ -18,9 +18,9 @@ typedef enum
     MENU_MAX
 } command_word_t;
 
-typedef struct
+typedef struct movement_orders_struct_t // For the program to work, all members must be default initialized to NO_MOVEMENT.
 {
-    int8_t horizontalRotationAmount;
+    double horizontalRotationAmount = 0; // in deg/s
 } movement_orders_t;
 
 class Observer

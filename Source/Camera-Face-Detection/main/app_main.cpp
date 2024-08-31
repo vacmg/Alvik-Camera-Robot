@@ -21,7 +21,7 @@ extern "C" void app_main()
     //AppCamera *camera = new AppCamera(PIXFORMAT_RGB565, FRAMESIZE_SVGA, 2, xQueueFrame_0);
     AppCamera *camera = new AppCamera(PIXFORMAT_RGB565, FRAMESIZE_240X240, 2, xQueueFrame_0);
     AppFace *face = new AppFace(key, xQueueFrame_0, xQueueFrame_1, xQueueMovementOrders);
-    //AppTransmission *transmission = new AppTransmission(xQueueMovementOrders);
+    AppTransmission *transmission = new AppTransmission(xQueueMovementOrders);
     AppLCD *lcd = new AppLCD(key, xQueueFrame_1);
 
     key->attach(face);
@@ -32,6 +32,7 @@ extern "C" void app_main()
     face->run();
     camera->run();
     key->run();
+    transmission->run();
 
     #if AUTO_ENABLE_FACE_RECOGNITION
         vTaskDelay(2000 / portTICK_PERIOD_MS);
