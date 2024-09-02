@@ -162,7 +162,7 @@ static void task(AppFace *self)
                         movementOrders.horizontalRotationAmount = 0;
                     }
 
-                    xQueueSend(self->queue_o_movement_orders, &movementOrders, portMAX_DELAY); // TODO send the real movement orders
+                    xQueueSend(self->queue_o_movement_orders, &movementOrders, portMAX_DELAY);
                 }
 
                 if (!detect_results.empty())
@@ -183,5 +183,5 @@ static void task(AppFace *self)
 
 void AppFace::run()
 {
-    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 5 * 1024, this, 5, nullptr, 1);
+    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 10 * 1024, this, 5, nullptr, 1);
 }
