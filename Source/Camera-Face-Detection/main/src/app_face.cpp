@@ -112,7 +112,7 @@ static void task(AppFace *self)
 
                     for(auto data : detect_results)
                     {
-                        ESP_LOGI(TAG, "box data: %d, %d, %d, %d", data.box[left_up_x], data.box[left_up_y], data.box[right_down_x], data.box[right_down_y]);
+                        ESP_LOGD(TAG, "box data: %d, %d, %d, %d", data.box[left_up_x], data.box[left_up_y], data.box[right_down_x], data.box[right_down_y]);
 
                         if(data.box[left_up_x] < left_offset)
                         {
@@ -140,12 +140,12 @@ static void task(AppFace *self)
                     uint32_t area = (right_offset - left_offset) * (bottom_offset - top_offset);
                     double area_proportion = static_cast<double>(area) / (frame->width * frame->height);
 
-                    ESP_LOGI(TAG, "area: %lu, area_proportion: %f,\nleft_proportion: %f, right_proportion: %f, top_proportion: %f, bottom_proportion: %f,\nleft_offset: %lu, right_offset: %lu, top_offset: %lu, bottom_offset: %lu",
+                    ESP_LOGD(TAG, "area: %lu, area_proportion: %f,\nleft_proportion: %f, right_proportion: %f, top_proportion: %f, bottom_proportion: %f,\nleft_offset: %lu, right_offset: %lu, top_offset: %lu, bottom_offset: %lu",
                              area, area_proportion, left_proportion, right_proportion, top_proportion, bottom_proportion, left_offset, right_offset, top_offset, bottom_offset);
 
                     #define TARGET_HORIZONTAL_EXCLUSION_PROPORTION 0.20
-                    #define MAX_ROTATION_MOVEMENT 10
-                    #define MIN_ROTATION_MOVEMENT 0.5
+                    #define MAX_ROTATION_MOVEMENT 30.0
+                    #define MIN_ROTATION_MOVEMENT 1.0
 
                     static movement_orders_t movementOrders = {};
 

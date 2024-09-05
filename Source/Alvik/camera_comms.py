@@ -37,7 +37,6 @@ def poll_camera(timeout_ms = 50):
   if mac is not None:
     null_index = msg.find(b'\x00')
     dataStr = msg[:null_index].decode('utf-8')
-    print(dataStr)
     data = dataStr.split(',')
     horizontalRotation = float(data[0])
     return horizontalRotation
