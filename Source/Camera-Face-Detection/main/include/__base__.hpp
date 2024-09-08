@@ -21,6 +21,8 @@ typedef enum
 typedef struct movement_orders_struct_t // For the program to work, all members must be default initialized to NO_MOVEMENT.
 {
     double horizontalRotationAmount = 0; // in deg/s
+    double verticalRotationAmount = 0;   // in deg/s
+    double forwardDisplacementAmount = 0; // in cm/s
 } movement_orders_t;
 
 class Observer

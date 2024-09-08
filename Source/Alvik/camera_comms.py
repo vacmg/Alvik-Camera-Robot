@@ -39,5 +39,7 @@ def poll_camera(timeout_ms = 50):
     dataStr = msg[:null_index].decode('utf-8')
     data = dataStr.split(',')
     horizontalRotation = float(data[0])
-    return horizontalRotation
+    verticalRotation = float(data[1])
+    displacementSpeed = float(data[2])
+    return [horizontalRotation, verticalRotation, displacementSpeed]
   return None

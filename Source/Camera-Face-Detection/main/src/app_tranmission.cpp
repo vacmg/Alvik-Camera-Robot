@@ -100,7 +100,7 @@ static void task(AppTransmission *self)
 
         if (xQueueReceive(self->queue_i_movement_orders, &orders, portMAX_DELAY) == pdTRUE)
         {
-            ESP_LOGI(TAG, "Received Movement - horizontalRotationAmount: %f", orders.horizontalRotationAmount);
+            ESP_LOGI(TAG, "Received Movement - horizontalRotationAmount: %f\tverticalRotationAmount: %f\tforwardDisplacementAmount: %f", orders.horizontalRotationAmount, orders.verticalRotationAmount, orders.forwardDisplacementAmount);
 
             if (dest_mac_set && xTaskGetTickCount() - last_wake_time >= pdMS_TO_TICKS(TRANSMISSION_MIN_DELAY))
             {
@@ -108,7 +108,7 @@ static void task(AppTransmission *self)
 
                 char buff[ESP_NOW_MAX_DATA_LEN+1];
                 ESP_LOGD(TAG, "Sending movement orders to " MACSTR, MAC2STR(dest_mac));
-                int size = std::max(snprintf(buff, ESP_NOW_MAX_DATA_LEN, "%f", orders.horizontalRotationAmount), ESP_NOW_MAX_DATA_LEN);
+                int size = std::max(snprintf(buff, ESP_NOW_MAX_DATA_LEN, "%f,%f,%f", orders.horizontalRotationAmount, orders.verticalRotationAmount, orders.forwardDisplacementAmount), ESP_NOW_MAX_DATA_LEN);
                 ESP_ERROR_CHECK( esp_now_send(dest_mac, (uint8_t *)buff, size) );
             }
         }

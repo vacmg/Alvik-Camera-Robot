@@ -144,22 +144,57 @@ static void task(AppFace *self)
                              area, area_proportion, left_proportion, right_proportion, top_proportion, bottom_proportion, left_offset, right_offset, top_offset, bottom_offset);
 
                     #define TARGET_HORIZONTAL_EXCLUSION_PROPORTION 0.20
-                    #define MAX_ROTATION_MOVEMENT 30.0
-                    #define MIN_ROTATION_MOVEMENT 1.0
+                    #define MAX_HORIZONTAL_ROTATION_MOVEMENT 30.0
+                    #define MIN_HORIZONTAL_ROTATION_MOVEMENT 1.0
 
                     static movement_orders_t movementOrders = {};
 
                     if(left_proportion < TARGET_HORIZONTAL_EXCLUSION_PROPORTION)
                     {
-                        movementOrders.horizontalRotationAmount = fmap(left_proportion, 0, TARGET_HORIZONTAL_EXCLUSION_PROPORTION, -MAX_ROTATION_MOVEMENT, -MIN_ROTATION_MOVEMENT);
+                        movementOrders.horizontalRotationAmount = fmap(left_proportion, 0, TARGET_HORIZONTAL_EXCLUSION_PROPORTION, -MAX_HORIZONTAL_ROTATION_MOVEMENT, -MIN_HORIZONTAL_ROTATION_MOVEMENT);
                     }
                     else if(right_proportion > 1 - TARGET_HORIZONTAL_EXCLUSION_PROPORTION)
                     {
-                        movementOrders.horizontalRotationAmount = fmap(right_proportion, 1 - TARGET_HORIZONTAL_EXCLUSION_PROPORTION, 1, MIN_ROTATION_MOVEMENT, MAX_ROTATION_MOVEMENT);
+                        movementOrders.horizontalRotationAmount = fmap(right_proportion, 1 - TARGET_HORIZONTAL_EXCLUSION_PROPORTION, 1, MIN_HORIZONTAL_ROTATION_MOVEMENT, MAX_HORIZONTAL_ROTATION_MOVEMENT);
                     }
                     else
                     {
                         movementOrders.horizontalRotationAmount = 0;
+                    }
+                    
+                    #define TARGET_VERTICAL_EXCLUSION_PROPORTION 0.20
+                    #define MAX_VERTICAL_ROTATION_MOVEMENT 30.0
+                    #define MIN_VERTICAL_ROTATION_MOVEMENT 1.0
+
+                    if(top_proportion < TARGET_VERTICAL_EXCLUSION_PROPORTION)
+                    {
+                        movementOrders.verticalRotationAmount = fmap(top_proportion, 0, TARGET_VERTICAL_EXCLUSION_PROPORTION, -MAX_VERTICAL_ROTATION_MOVEMENT, -MIN_VERTICAL_ROTATION_MOVEMENT);
+                    }
+                    else if(bottom_proportion > 1 - TARGET_VERTICAL_EXCLUSION_PROPORTION)
+                    {
+                        movementOrders.verticalRotationAmount = fmap(bottom_proportion, 1 - TARGET_VERTICAL_EXCLUSION_PROPORTION, 1, MIN_VERTICAL_ROTATION_MOVEMENT, MAX_VERTICAL_ROTATION_MOVEMENT);
+                    }
+                    else
+                    {
+                        movementOrders.verticalRotationAmount = 0;
+                    }
+
+                    #define TARGET_AREA_PROPORTION 0.20
+                    #define TARGET_AREA_PROPORTION_TOLERANCE 0.05
+                    #define MAX_FORWARD_MOVEMENT 30.0
+                    #define MIN_FORWARD_MOVEMENT 1.0
+
+                    if(area_proportion < TARGET_AREA_PROPORTION - TARGET_AREA_PROPORTION_TOLERANCE)
+                    {
+                        movementOrders.forwardDisplacementAmount = fmap(area_proportion, 0, TARGET_AREA_PROPORTION - TARGET_AREA_PROPORTION_TOLERANCE, -MAX_FORWARD_MOVEMENT, -MIN_FORWARD_MOVEMENT);
+                    }
+                    else if(area_proportion > TARGET_AREA_PROPORTION + TARGET_AREA_PROPORTION_TOLERANCE)
+                    {
+                        movementOrders.forwardDisplacementAmount = fmap(area_proportion, TARGET_AREA_PROPORTION + TARGET_AREA_PROPORTION_TOLERANCE, 1, MIN_FORWARD_MOVEMENT, MAX_FORWARD_MOVEMENT);
+                    }
+                    else
+                    {
+                        movementOrders.forwardDisplacementAmount = 0;
                     }
 
                     xQueueSend(self->queue_o_movement_orders, &movementOrders, portMAX_DELAY);
