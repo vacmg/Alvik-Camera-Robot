@@ -86,6 +86,15 @@ static void task(AppTransmission *self)
     ESP_ERROR_CHECK( esp_now_init() );
     ESP_ERROR_CHECK( esp_now_register_recv_cb(espnow_recv_cb) );
 
+    esp_now_peer_info_t peer_info;
+    memset(&peer_info, 0, sizeof(esp_now_peer_info_t));
+    peer_info.ifidx = static_cast<wifi_interface_t>(ESP_IF_WIFI_STA);
+
+    uint8_t broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    memcpy(peer_info.peer_addr, broadcast_mac, ESP_NOW_ETH_ALEN);
+
+    ESP_ERROR_CHECK( esp_now_add_peer(&peer_info) );
+
     ESP_LOGI(TAG, "ESP-NOW ready");
 
     movement_orders_t orders;
@@ -102,14 +111,24 @@ static void task(AppTransmission *self)
         {
             ESP_LOGI(TAG, "Received Movement - horizontalRotationAmount: %f\tverticalRotationAmount: %f\tforwardDisplacementAmount: %f", orders.horizontalRotationAmount, orders.verticalRotationAmount, orders.forwardDisplacementAmount);
 
-            if (dest_mac_set && xTaskGetTickCount() - last_wake_time >= pdMS_TO_TICKS(TRANSMISSION_MIN_DELAY))
+            if(xTaskGetTickCount() - last_wake_time >= pdMS_TO_TICKS(TRANSMISSION_MIN_DELAY))
             {
                 last_wake_time = xTaskGetTickCount();
 
-                char buff[ESP_NOW_MAX_DATA_LEN+1];
-                ESP_LOGD(TAG, "Sending movement orders to " MACSTR, MAC2STR(dest_mac));
-                int size = std::max(snprintf(buff, ESP_NOW_MAX_DATA_LEN, "%f,%f,%f", orders.horizontalRotationAmount, orders.verticalRotationAmount, orders.forwardDisplacementAmount), ESP_NOW_MAX_DATA_LEN);
-                ESP_ERROR_CHECK( esp_now_send(dest_mac, (uint8_t *)buff, size) );
+                if (dest_mac_set)
+                {
+                    char buff[ESP_NOW_MAX_DATA_LEN+1];
+                    ESP_LOGD(TAG, "Sending movement orders to " MACSTR, MAC2STR(dest_mac));
+                    int size = std::max(snprintf(buff, ESP_NOW_MAX_DATA_LEN, "%f,%f,%f", orders.horizontalRotationAmount, orders.verticalRotationAmount, orders.forwardDisplacementAmount), ESP_NOW_MAX_DATA_LEN);
+                    ESP_ERROR_CHECK( esp_now_send(dest_mac, (uint8_t *)buff, size) );
+                }
+                else
+                {
+                    char buff[ESP_NOW_MAX_DATA_LEN+1];
+                    ESP_LOGD(TAG, "Sending broadcast message to Arduino Alvik to reconnect");
+                    int size = std::max(snprintf(buff, ESP_NOW_MAX_DATA_LEN, "ARDUINO_ALVIK_CAMERA_FACEDETECTOR_:P"), ESP_NOW_MAX_DATA_LEN);
+                    ESP_ERROR_CHECK( esp_now_send(broadcast_mac, (uint8_t *)buff, size) );
+                }
             }
         }
     }

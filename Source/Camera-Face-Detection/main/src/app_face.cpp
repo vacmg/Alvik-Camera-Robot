@@ -140,10 +140,10 @@ static void task(AppFace *self)
                     uint32_t area = (right_offset - left_offset) * (bottom_offset - top_offset);
                     double area_proportion = static_cast<double>(area) / (frame->width * frame->height);
 
-                    ESP_LOGD(TAG, "area: %lu, area_proportion: %f,\nleft_proportion: %f, right_proportion: %f, top_proportion: %f, bottom_proportion: %f,\nleft_offset: %lu, right_offset: %lu, top_offset: %lu, bottom_offset: %lu",
+                    ESP_LOGW(TAG, "area: %lu, area_proportion: %f,\nleft_proportion: %f, right_proportion: %f, top_proportion: %f, bottom_proportion: %f,\nleft_offset: %lu, right_offset: %lu, top_offset: %lu, bottom_offset: %lu",
                              area, area_proportion, left_proportion, right_proportion, top_proportion, bottom_proportion, left_offset, right_offset, top_offset, bottom_offset);
 
-                    #define TARGET_HORIZONTAL_EXCLUSION_PROPORTION 0.20
+                    #define TARGET_HORIZONTAL_EXCLUSION_PROPORTION 0.3
                     #define MAX_HORIZONTAL_ROTATION_MOVEMENT 30.0
                     #define MIN_HORIZONTAL_ROTATION_MOVEMENT 1.0
 
@@ -161,7 +161,8 @@ static void task(AppFace *self)
                     {
                         movementOrders.horizontalRotationAmount = 0;
                     }
-                    
+
+                    // VERTICAL ROTATION UNTESTED
                     #define TARGET_VERTICAL_EXCLUSION_PROPORTION 0.20
                     #define MAX_VERTICAL_ROTATION_MOVEMENT 30.0
                     #define MIN_VERTICAL_ROTATION_MOVEMENT 1.0
@@ -179,18 +180,19 @@ static void task(AppFace *self)
                         movementOrders.verticalRotationAmount = 0;
                     }
 
-                    #define TARGET_AREA_PROPORTION 0.20
+                    #define TARGET_AREA_PROPORTION 0.15
                     #define TARGET_AREA_PROPORTION_TOLERANCE 0.05
-                    #define MAX_FORWARD_MOVEMENT 30.0
-                    #define MIN_FORWARD_MOVEMENT 1.0
+                    #define MAX_FORWARD_MOVEMENT 20.0
+                    #define MIN_FORWARD_MOVEMENT 0.5
+                    #define MAX_AREA_PROPORTION ((2*TARGET_AREA_PROPORTION) + TARGET_AREA_PROPORTION_TOLERANCE)
 
                     if(area_proportion < TARGET_AREA_PROPORTION - TARGET_AREA_PROPORTION_TOLERANCE)
                     {
-                        movementOrders.forwardDisplacementAmount = fmap(area_proportion, 0, TARGET_AREA_PROPORTION - TARGET_AREA_PROPORTION_TOLERANCE, -MAX_FORWARD_MOVEMENT, -MIN_FORWARD_MOVEMENT);
+                        movementOrders.forwardDisplacementAmount = fmap(area_proportion, 0, TARGET_AREA_PROPORTION - TARGET_AREA_PROPORTION_TOLERANCE, MAX_FORWARD_MOVEMENT, MIN_FORWARD_MOVEMENT);
                     }
                     else if(area_proportion > TARGET_AREA_PROPORTION + TARGET_AREA_PROPORTION_TOLERANCE)
                     {
-                        movementOrders.forwardDisplacementAmount = fmap(area_proportion, TARGET_AREA_PROPORTION + TARGET_AREA_PROPORTION_TOLERANCE, 1, MIN_FORWARD_MOVEMENT, MAX_FORWARD_MOVEMENT);
+                        movementOrders.forwardDisplacementAmount = fmap(area_proportion, TARGET_AREA_PROPORTION + TARGET_AREA_PROPORTION_TOLERANCE, MAX_AREA_PROPORTION, -MIN_FORWARD_MOVEMENT, -MAX_FORWARD_MOVEMENT);
                     }
                     else
                     {
@@ -218,5 +220,5 @@ static void task(AppFace *self)
 
 void AppFace::run()
 {
-    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 10 * 1024, this, 5, nullptr, 1);
+    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 8 * 1024, this, 5, nullptr, 1);
 }

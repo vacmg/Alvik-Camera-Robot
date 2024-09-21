@@ -2,18 +2,9 @@ from esp_now_utils import *
 from time import sleep_ms, ticks_diff, ticks_ms
 
 
-def start_camera_comms(connection_timeout = 120000):
-  try:
-    deinit_esp_now()
-  except Exception as e:
-    print(e)
-  
-  init_esp_now()
-  
+def connect_to_camera(connection_timeout):
   broadcast_MAC = b'\xff' * 6
   local_MAC = get_mac_address()
-  esp.add_peer(broadcast_MAC) # add broadcast MAC to allowed send peers
-
   connected = False
   start_millis = ticks_ms()
 
@@ -32,14 +23,32 @@ def start_camera_comms(connection_timeout = 120000):
         connected = True
 
 
-def poll_camera(timeout_ms = 50):
+def start_camera_comms(connection_timeout = 120000):
+  try:
+    deinit_esp_now()
+  except Exception as e:
+    print(e)
+  
+  init_esp_now()
+  
+  broadcast_MAC = b'\xff' * 6
+  esp.add_peer(broadcast_MAC) # add broadcast MAC to allowed send peers
+
+  connect_to_camera(connection_timeout)
+
+
+def poll_camera(timeout_ms = 50, connection_timeout = 120000):
   mac, msg = esp.irecv(timeout_ms)
   if mac is not None:
     null_index = msg.find(b'\x00')
     dataStr = msg[:null_index].decode('utf-8')
-    data = dataStr.split(',')
-    horizontalRotation = float(data[0])
-    verticalRotation = float(data[1])
-    displacementSpeed = float(data[2])
-    return [horizontalRotation, verticalRotation, displacementSpeed]
+    if dataStr == 'ARDUINO_ALVIK_CAMERA_FACEDETECTOR_:P':
+      print('Camera requesting reconnect')
+      connect_to_camera(connection_timeout)
+    else:
+      data = dataStr.split(',')
+      horizontalRotation = float(data[0])
+      verticalRotation = float(data[1])
+      displacementSpeed = float(data[2])
+      return [horizontalRotation, verticalRotation, displacementSpeed]
   return None

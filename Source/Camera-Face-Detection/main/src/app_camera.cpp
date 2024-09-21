@@ -92,5 +92,5 @@ static void task(AppCamera *self)
 
 void AppCamera::run()
 {
-    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 2 * 1024, this, 5, nullptr, 0);
+    xTaskCreatePinnedToCore((TaskFunction_t)task, TAG, 3 * 1024, this, 5, nullptr, 0);
 }
