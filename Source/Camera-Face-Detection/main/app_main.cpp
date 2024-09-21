@@ -1,4 +1,4 @@
-#define AUTO_ENABLE_FACE_RECOGNITION 1
+#define AUTO_ENABLE_FACE_RECOGNITION 0
 
 #include "driver/gpio.h"
 #include "esp_log.h"
